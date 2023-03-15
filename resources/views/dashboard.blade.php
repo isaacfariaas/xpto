@@ -1,17 +1,33 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+@extends('layouts.app', ['pageSlug' => 'dashboard'])
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    {{ __("You're logged in!") }}
+@section('content')
+<div class="row">
+    <div class="col-12">
+        <div class="card card-chart">
+            <div class="card-header ">
+                <div class="row">
+                    <div class="col-sm-6 text-left">
+                        <h2 class="card-title">Curso preparatório XPTO</h2>
+                        <a class="btn col-lg btn-primary" href="{{route('competition.index')}}">Acessar Bolsões</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="chartBig1"></canvas>
                 </div>
             </div>
         </div>
     </div>
-</x-app-layout>
+</div>
+
+@endsection
+
+@push('js')
+<script src="{{ asset('black') }}/js/plugins/chartjs.min.js"></script>
+<script>
+    $(document).ready(function() {
+        demo.initDashboardPageCharts();
+    });
+</script>
+@endpush

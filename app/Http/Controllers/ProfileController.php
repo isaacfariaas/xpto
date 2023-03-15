@@ -2,59 +2,68 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\ProfileRequest;
+use App\Http\Requests\PasswordRequest;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Http\UploadedFile;
+
+
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Show the form for editing the profile.
+     *
+     * @return \Illuminate\View\View
      */
-    public function edit(Request $request): View
+    public function edit()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $user = User::find(Auth::user()->id);
+        $permissions = $user->permissions;
+        $filename = $user->photo;
+        return view('profile.edit', compact('user', 'permissions', 'filename'));
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+    public function update(ProfileRequest $request)
+    {
+        $user = User::find($request->id);
+        $filename = Auth::user()->photo;
+
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            $path = $photo->store('public/photos');
+            $filename = str_replace('public/', '', $path);
         }
 
-        $request->user()->save();
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'cpf' => $request->cpf,
+            'birth_date' => $request->birth_date,
+            'phone' => $request->phone,
+            'nationality' => $request->nationality,
+            'photo' => $filename,
+            'responsible' => $request->responsible,
+            'kinship_level' => $request->kinship_level,
+            'terms' => $request->terms,
+        ]);
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return back()->withStatus(__('Usuário atualizado com sucesso!'));
     }
 
     /**
-     * Delete the user's account.
+     * Change the password
+     *
+     * @param  \App\Http\Requests\PasswordRequest  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Request $request): RedirectResponse
+    public function password(PasswordRequest $request)
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current-password'],
-        ]);
+        Auth::user()->update(['password' => Hash::make($request->get('password'))]);
 
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return back()->withPasswordStatus(__('Password successfully updated.'));
     }
 }
