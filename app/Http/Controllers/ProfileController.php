@@ -32,6 +32,19 @@ class ProfileController extends Controller
         $user = User::find($request->id);
         $filename = Auth::user()->photo;
 
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:tb_users,email,' . $request->id,
+            'cpf' => 'required|string|unique:tb_users,cpf,' . $request->id,
+            'birth_date' => 'required|date',
+            'phone' => 'nullable|string|max:20',
+            'nationality' => 'nullable|string|max:255',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'responsible' => 'nullable|string|max:255',
+            'kinship_level' => 'nullable|string|max:255',
+            'terms' => 'required|boolean',
+        ]);
+
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
             $path = $photo->store('public/photos');
@@ -39,16 +52,16 @@ class ProfileController extends Controller
         }
 
         $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'cpf' => $request->cpf,
-            'birth_date' => $request->birth_date,
-            'phone' => $request->phone,
-            'nationality' => $request->nationality,
+            'name' => $validatedData['name'],
+            'email' => $validatedData['email'],
+            'cpf' => $validatedData['cpf'],
+            'birth_date' => $validatedData['birth_date'],
+            'phone' => $validatedData['phone'],
+            'nationality' => $validatedData['nationality'],
             'photo' => $filename,
-            'responsible' => $request->responsible,
-            'kinship_level' => $request->kinship_level,
-            'terms' => $request->terms,
+            'responsible' => $validatedData['responsible'],
+            'kinship_level' => $validatedData['kinship_level'],
+            'terms' => $validatedData['terms'],
         ]);
 
         return back()->withStatus(__('Usuário atualizado com sucesso!'));
