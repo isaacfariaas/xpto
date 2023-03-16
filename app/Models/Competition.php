@@ -14,11 +14,12 @@ class Competition extends Model
         'start_date',
         'end_date',
         'scholarship_amount',
+        'is_active'
     ];
 
     public function winners()
     {
-        return $this->hasMany(Winners::class, 'id_competition');
+        return $this->hasMany(Winner::class, 'id_competition');
     }
 
     public function subscribes()
