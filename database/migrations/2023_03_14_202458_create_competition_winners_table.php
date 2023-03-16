@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('id_competition')->references('id')->on('competitions')->onDelete('cascade');
-            $table->foreign('id_subscribe')->references('id')->on('subscribes')->onDelete('cascade');
+            $table->foreign('id_subscribe')->references('id')->on('competition_subscribes')->onDelete('cascade');
         });
     }
 
