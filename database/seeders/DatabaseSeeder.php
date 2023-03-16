@@ -1,6 +1,7 @@
 <?php
 namespace Database\Seeders;
 
+use App\Models\Subscribe;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 
@@ -15,7 +16,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             ProfileSeeder::class,
-            UsersTableSeeder::class
+            UsersTableSeeder::class,
+            CompetitionSeeder::class,
+            SubscribeSeeder::class,
+            WinnersSeeder::class
         ]);
     }
 }
