@@ -5,57 +5,60 @@ use Illuminate\Support\Facades\Blade;
 @endphp
 
 @section('content')
-<div class="row">
-    @can('admin')
-    <a class="btn col-lg-2 btn-success" href="{{ route('competition.create') }}"> Criar novo Bolsão</a>
-</div>
-<div class="row">
-    @endcan
-    @if($competitions=='[]')
-    <div class="col-lg-4">
-        <div class="card card-chart">
-            <div class="card-header">
-                <h1 class="card-chart">Sem Bolsões Disponíveis</h1>
-            </div>
-            <div class="card-body">
-                <div class="chart-area">
-                    <canvas id="CountryChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="container">
+    <h1>Bolsões</h1>
 
+    <a href="{{ route('competition.create') }}" class="btn btn-primary mb-3">Criar novo bolsão</a>
+    <a href="{{ route('competition.winners') }}" class="btn btn-primary mb-3">Últimos Ganhadores</a>
+    @if (session('status'))
+    <div class="alert alert-success">{{ session('status') }}</div>
     @endif
-    @foreach ($competitions as $competition)
-    <div class="col-lg-4">
-        <div class="card card-chart">
-            <div class="card-header">
-                <h1 class="card">Concurso Bolsão - {{$competition->tittle}}</h1>
-                @can('student')
-                <form method="post" action="{{ route('competition.subscribe', ['id' => $competition->id]) }}">
-                    @csrf
-                    @include('alerts.success')
-                    <button class="btn col-lg btn-primary" type="submit">Inscreva-se</button>
-                </form>
-                @endcan
-                @can('admin')
-                <form method="POST" action="{{ route('competition.destroy', ['competition' => $competition->id]) }}">
-                    @csrf
-                    @method('DELETE')
-                    
-                    <button class="btn col-lg btn-danger" type="submit">Cancelar bolsão</button>
-                </form>
-                @endcan
-            </div>
-            <div class="card-body">
-                <div class="chart-area">
-                    <canvas id="CountryChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
 
-
-    @endforeach
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Data de início</th>
+                <th>Data de término</th>
+                <th>Data do sorteio</th>
+                <th>Quantidade de bolsas</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($competitions as $competition)
+            <tr>
+                <td>{{ $competition->tittle }}</td>
+                <td>{{ date('d/m/Y H:i', strtotime($competition->start_date)) }}</td>
+                <td>{{ date('d/m/Y H:i', strtotime($competition->end_date)) }}</td>
+                <td>{{ date('d/m/Y H:i', strtotime($competition->raffle_date)) }}</td>
+                <td>{{ $competition->scholarship_amount }}</td>
+                <td>
+                    @if ($competition->is_active)
+                    <span class="badge badge-success">Ativo</span>
+                    @else
+                    <span class="badge badge-danger">Cancelado</span>
+                    @endif
+                </td>
+                <td>
+                    <a href="{{ route('competition.show', $competition) }}" class="btn btn-info btn-sm">Detalhes</a>
+                    @can('student')
+                    <form method="post" action="{{ route('competition.subscribe', ['id' => $competition->id]) }}">
+                        @csrf
+                        <button class="btn btn-primary btn-sm">Inscrever-se</button>
+                    </form>
+                    @endcan
+                    @can('admin')
+                    <form action="{{ route('competition.cancel',['id' => $competition])}}" method="POST" class="d-inline-block">
+                        @csrf
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja cancelar este bolsão?')">Cancelar</button>
+                    </form>
+                    @endcan
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
 </div>
 @endsection
