@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Competition;
 use App\Models\Subscribe;
 use App\Models\Winner;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+
 
 class CompetitionController extends Controller
 {
@@ -18,17 +20,19 @@ class CompetitionController extends Controller
         $competitions = Competition::all();
         return view('competitions.index', compact('competitions'));
     }
-    /**
-     * Show the form for creating a new resource.
-     */
+
     public function create()
     {
         return view('competitions.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function winners()
+    {
+
+        $winners = Competition::with('winners')->get();
+        return view('competitions.winners', compact('winners'));
+    }
+
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -36,7 +40,8 @@ class CompetitionController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'raffle_date' => 'required|date|after:end_date',
-            'scholarship_amount' => 'integer|min:1|max:100',
+            'scholarship_amount' => 'required|integer|min:1',
+            'is_active' => 'boolean'
         ]);
 
         $competition = new Competition();
@@ -45,94 +50,82 @@ class CompetitionController extends Controller
         $competition->end_date = $validatedData['end_date'];
         $competition->raffle_date = $validatedData['raffle_date'];
         $competition->scholarship_amount = $validatedData['scholarship_amount'] ?? 5;
+        $competition->is_active = $validatedData['is_active'] ?? true;
         $competition->save();
 
         return redirect()->route('competition.index')->withStatus(__('Bolsão criado com sucesso.'));
     }
-    /**
-     * Exibe as informações de um bolsão específico.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
+
     public function show($id)
     {
 
         $competition = Competition::find($id);
-        
+
         if (!$competition) {
             return redirect()->route('competition.index')->withStatus(__('Bolsão não encontrado.'));
         }
         $subscribes = Subscribe::where('id_competition', $competition->id)
-            ->with('id_user')
+            ->with('user')
             ->orderBy('created_at', 'desc')
             ->get();
 
         $winners = Winner::where('id_competition', $competition->id)
-            ->with('subscribe.id_user')
+            ->with('subscribe.user')
             ->get();
         return view('competitions.show', compact('competition', 'subscribes', 'winners'));
     }
 
-    /**
-     * Exibe o formulário para editar um bolsão específico.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        $competition = Competition::find($id);
-        return view('competitions.edit', compact('competition'));
-    }
 
-    /**
-     * Atualiza um bolsão específico no banco de dados.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request)
     {
-        $competition = Competition::find($request->id);
 
-        $validatedData = $request->validate([
-            'tittle' => 'required|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
+        $request->validate([
+            'tittle' => 'max:255',
+            'start_date' => 'date',
+            'end_date' => 'date|after:start_date',
             'raffle_date' => 'required|date|after:end_date',
             'scholarship_amount' => 'integer|min:1|max:100',
+            'is_active' => 'boolean'
         ]);
+        $competition = Competition::find($request->id);
 
-        $competition->update([
 
-            'tittle' => $validatedData['tittle'],
-            'start_date' => $validatedData['start_date'],
-            'end_date' => $validatedData['end_date'],
-            'raffle_date' => $validatedData['raffle_date'],
-            'scholarship_amount' => $validatedData['scholarship_amount'] ?? 5,
-        ]);
-        return redirect()->route('competition.index')->withStatus(__('Bolsão atualizado com sucesso.'));
+        $competition->tittle = $request->tittle;
+        $competition->start_date = $request->start_date;
+        $competition->end_date = $request->end_date;
+        $competition->raffle_date = $request->raffle_date;
+        $competition->scholarship_amount = $request->scholarship_amount;
+        $competition->is_active = $request->is_active;
+
+        if ($competition->save()) {
+            return redirect()->route('competition.index')->withStatus(__('Bolsão atualizado com sucesso.'));
+        }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    public function cancel(Request $request)
+    {
+        //return $request;
+        $competition = Competition::find($request->id);
+//return $competition;
+        $competition->is_active = 0;
+
+        if ($competition->save()) {
+            return redirect()->route('competition.index')->withStatus(__('Bolsão cancelado com sucesso.'));
+        }
+    }
+
+
     public function destroy($id)
     {
-        
+
         $competition = Competition::find($id);
-    
+
         if ($competition) {
             $competition->subscribes()->delete();
             $competition->delete();
             return redirect()->route('competition.index')->withStatus(__('Bolsão excluído com sucesso!'));
         }
-    
+
         return redirect()->route('competition.index')->withStatus(__('Não foi possível excluir o bolsão.'));
     }
 
@@ -145,7 +138,7 @@ class CompetitionController extends Controller
             return redirect()->route('profile.edit')->withStatus(__('Finalize seu cadastro para participar do Bolsão'));
         }
 
-       
+
         if (Subscribe::where('id_competition', $competition->id)->where('id_user', Auth::user()->id)->exists()) {
             return redirect()->route('competition.index')->withStatus(__('Você já está inscrito neste bolsão.'));
         }
@@ -158,29 +151,5 @@ class CompetitionController extends Controller
         $subscribe->save();
 
         return redirect()->route('competition.index')->withStatus(__('Inscrição realizada com sucesso!'));
-    }
-    public function raffle(Request $request)
-    {
-        $competition = Competition::findOrFail($request->id);
-
-        if (Winner::where('id_competition', $competition->id)->exists()) {
-            return redirect()->route('competition.index')->withStatus(__('Já foram sorteados vencedores para este bolsão.'));
-        }
-
-        $subscribes = Subscribe::where('id_competition', $competition->id)->get();
-
-        $winners_amount = $competition->winners_amount ?? 5;
-        $winners = $subscribes->random($winners_amount);
-
-        foreach ($winners as $subscribe) {
-            $winner = new Winner([
-                'id_competition' => $competition->id,
-                'id_subscribe' => $subscribe->id,
-            ]);
-
-            $winner->save();
-        }
-
-        return redirect()->route('competition.index')->withStatus(__('Sorteio realizado com sucesso!'));
     }
 }
