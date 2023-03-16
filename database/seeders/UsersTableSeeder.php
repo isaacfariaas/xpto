@@ -28,7 +28,7 @@ class UsersTableSeeder extends Seeder
     
         $admin->givePermissionTo('admin');
     
-        User::factory()->count(15)->create()->each(function ($user) {
+        User::factory()->count(50)->create()->each(function ($user) {
             $user->givePermissionTo('student');
         });
     }
